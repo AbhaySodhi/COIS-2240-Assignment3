@@ -1,38 +1,54 @@
-import java.util.List;
-import java.time.LocalDate;
-import java.util.ArrayList;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class RentalSystem {
-    private static RentalSystem instance; // Singleton instance
-    private List<Vehicle> vehicles = new ArrayList<>();
-    private List<Customer> customers = new ArrayList<>();
-    private RentalHistory rentalHistory = new RentalHistory();
+    // ... (previous code)
 
-    // Private constructor to prevent direct instantiation
-    private RentalSystem() {
-    }
-
-    // Public method to get the single instance
-    public static RentalSystem getInstance() {
-        if (instance == null) {
-            instance = new RentalSystem();
+    public void saveVehicle(Vehicle vehicle) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("vehicles.txt", true))) {
+            writer.write(vehicle.getLicensePlate() + "," + vehicle.getMake() + "," + vehicle.getModel() + "," + vehicle.getYear() + "," + vehicle.getClass().getSimpleName());
+            writer.newLine();
+        } catch (IOException e) {
+            System.out.println("Error saving vehicle: " + e.getMessage());
         }
-        return instance;
     }
 
-    // Rest of the methods remain unchanged for now
+    public void saveCustomer(Customer customer) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("customers.txt", true))) {
+            writer.write(customer.getCustomerId() + "," + customer.getCustomerName());
+            writer.newLine();
+        } catch (IOException e) {
+            System.out.println("Error saving customer: " + e.getMessage());
+        }
+    }
+
+    public void saveRecord(RentalRecord record) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("rental_records.txt", true))) {
+            writer.write(record.getVehicle().getLicensePlate() + "," + record.getCustomer().getCustomerId() + "," + record.getRecordDate() + "," + record.getTotalAmount() + "," + record.getRecordType());
+            writer.newLine();
+        } catch (IOException e) {
+            System.out.println("Error saving record: " + e.getMessage());
+        }
+    }
+
+    // Update existing methods to call these
     public void addVehicle(Vehicle vehicle) {
         vehicles.add(vehicle);
+        saveVehicle(vehicle); // Call save method
     }
 
     public void addCustomer(Customer customer) {
         customers.add(customer);
+        saveCustomer(customer); // Call save method
     }
 
     public void rentVehicle(Vehicle vehicle, Customer customer, LocalDate date, double amount) {
         if (vehicle.getStatus() == Vehicle.VehicleStatus.AVAILABLE) {
             vehicle.setStatus(Vehicle.VehicleStatus.RENTED);
-            rentalHistory.addRecord(new RentalRecord(vehicle, customer, date, amount, "RENT"));
+            RentalRecord record = new RentalRecord(vehicle, customer, date, amount, "RENT");
+            rentalHistory.addRecord(record);
+            saveRecord(record); // Call save method
             System.out.println("Vehicle rented to " + customer.getCustomerName());
         } else {
             System.out.println("Vehicle is not available for renting.");
@@ -42,49 +58,25 @@ public class RentalSystem {
     public void returnVehicle(Vehicle vehicle, Customer customer, LocalDate date, double extraFees) {
         if (vehicle.getStatus() == Vehicle.VehicleStatus.RENTED) {
             vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
-            rentalHistory.addRecord(new RentalRecord(vehicle, customer, date, extraFees, "RETURN"));
+            RentalRecord record = new RentalRecord(vehicle, customer, date, extraFees, "RETURN");
+            rentalHistory.addRecord(record);
+            saveRecord(record); // Call save method
             System.out.println("Vehicle returned by " + customer.getCustomerName());
         } else {
             System.out.println("Vehicle is not rented.");
         }
     }
 
-    public void displayVehicles(boolean onlyAvailable) {
-        System.out.println("|     Type         |\tPlate\t|\tMake\t|\tModel\t|\tYear\t|");
-        System.out.println("---------------------------------------------------------------------------------");
-        for (Vehicle v : vehicles) {
-            if (!onlyAvailable || v.getStatus() == Vehicle.VehicleStatus.AVAILABLE) {
-                System.out.println("|     " + (v instanceof Car ? "Car          " : v instanceof Motorcycle ? "Motorcycle   " : "Truck        ") + "|\t" + v.getLicensePlate() + "\t|\t" + v.getMake() + "\t|\t" + v.getModel() + "\t|\t" + v.getYear() + "\t|\t");
-            }
-        }
-        System.out.println();
+    // Add getters for testing purposes later
+    public List<Vehicle> getVehicles() {
+        return vehicles;
     }
 
-    public void displayAllCustomers() {
-        for (Customer c : customers) {
-            System.out.println("  " + c.toString());
-        }
+    public List<Customer> getCustomers() {
+        return customers;
     }
 
-    public void displayRentalHistory() {
-        for (RentalRecord record : rentalHistory.getRentalHistory()) {
-            System.out.println(record.toString());
-        }
-    }
-
-    public Vehicle findVehicleByPlate(String plate) {
-        for (Vehicle v : vehicles) {
-            if (v.getLicensePlate().equalsIgnoreCase(plate)) {
-                return v;
-            }
-        }
-        return null;
-    }
-
-    public Customer findCustomerById(String id) {
-        for (Customer c : customers)
-            if (c.getCustomerId() == Integer.parseInt(id))
-                return c;
-        return null;
+    public RentalHistory getRentalHistory() {
+        return rentalHistory;
     }
 }
