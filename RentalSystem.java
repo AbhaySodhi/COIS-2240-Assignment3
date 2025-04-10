@@ -1,10 +1,30 @@
+import java.util.List;
+import java.util.ArrayList;
+import java.time.LocalDate;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 
 public class RentalSystem {
-    // ... (previous code)
+    private static RentalSystem instance; // Singleton from Task 1.1
+    private List<Vehicle> vehicles = new ArrayList<>();
+    private List<Customer> customers = new ArrayList<>();
+    private RentalHistory rentalHistory = new RentalHistory();
 
+    private RentalSystem() {
+        loadData();
+    }
+
+    public static RentalSystem getInstance() {
+        if (instance == null) {
+            instance = new RentalSystem();
+        }
+        return instance;
+    }
+
+    //  File storage methods
     public void saveVehicle(Vehicle vehicle) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("vehicles.txt", true))) {
             writer.write(vehicle.getLicensePlate() + "," + vehicle.getMake() + "," + vehicle.getModel() + "," + vehicle.getYear() + "," + vehicle.getClass().getSimpleName());
@@ -32,15 +52,15 @@ public class RentalSystem {
         }
     }
 
-    // Update existing methods to call these
+    //  Updated methods to call save methods
     public void addVehicle(Vehicle vehicle) {
         vehicles.add(vehicle);
-        saveVehicle(vehicle); // Call save method
+        saveVehicle(vehicle);
     }
 
     public void addCustomer(Customer customer) {
         customers.add(customer);
-        saveCustomer(customer); // Call save method
+        saveCustomer(customer);
     }
 
     public void rentVehicle(Vehicle vehicle, Customer customer, LocalDate date, double amount) {
@@ -48,7 +68,7 @@ public class RentalSystem {
             vehicle.setStatus(Vehicle.VehicleStatus.RENTED);
             RentalRecord record = new RentalRecord(vehicle, customer, date, amount, "RENT");
             rentalHistory.addRecord(record);
-            saveRecord(record); // Call save method
+            saveRecord(record);
             System.out.println("Vehicle rented to " + customer.getCustomerName());
         } else {
             System.out.println("Vehicle is not available for renting.");
@@ -60,23 +80,130 @@ public class RentalSystem {
             vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
             RentalRecord record = new RentalRecord(vehicle, customer, date, extraFees, "RETURN");
             rentalHistory.addRecord(record);
-            saveRecord(record); // Call save method
+            saveRecord(record);
             System.out.println("Vehicle returned by " + customer.getCustomerName());
         } else {
             System.out.println("Vehicle is not rented.");
         }
     }
 
-    // Add getters for testing purposes later
-    public List<Vehicle> getVehicles() {
-        return vehicles;
+    //Load data from files
+    private void loadData() {
+        // Load vehicles
+        try (BufferedReader reader = new BufferedReader(new FileReader("vehicles.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    String plate = parts[0];
+                    String make = parts[1];
+                    String model = parts[2];
+                    int year = Integer.parseInt(parts[3]);
+                    String type = parts[4];
+                    Vehicle vehicle;
+                    switch (type) {
+                        case "Car":
+                            vehicle = new Car(make, model, year, 5); // Default seats
+                            break;
+                        case "Motorcycle":
+                            vehicle = new Motorcycle(make, model, year, false); // Default sidecar
+                            break;
+                        case "Truck":
+                            vehicle = new Truck(make, model, year, 1000); // Default cargo capacity
+                            break;
+                        default:
+                            continue; // Skip invalid types
+                    }
+                    vehicle.setLicensePlate(plate);
+                    vehicles.add(vehicle);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading vehicles: " + e.getMessage());
+        }
+
+        // Load customers
+        try (BufferedReader reader = new BufferedReader(new FileReader("customers.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 2) {
+                    int id = Integer.parseInt(parts[0]);
+                    String name = parts[1];
+                    customers.add(new Customer(id, name));
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading customers: " + e.getMessage());
+        }
+
+        // Load rental records
+        try (BufferedReader reader = new BufferedReader(new FileReader("rental_records.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    String plate = parts[0];
+                    int customerId = Integer.parseInt(parts[1]);
+                    LocalDate date = LocalDate.parse(parts[2]);
+                    double amount = Double.parseDouble(parts[3]);
+                    String type = parts[4];
+                    Vehicle vehicle = findVehicleByPlate(plate);
+                    Customer customer = findCustomerById(String.valueOf(customerId));
+                    if (vehicle != null && customer != null) {
+                        rentalHistory.addRecord(new RentalRecord(vehicle, customer, date, amount, type));
+                        if (type.equals("RENT")) {
+                            vehicle.setStatus(Vehicle.VehicleStatus.RENTED);
+                        } else if (type.equals("RETURN")) {
+                            vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading rental records: " + e.getMessage());
+        }
     }
 
-    public List<Customer> getCustomers() {
-        return customers;
+    
+    public void displayVehicles(boolean onlyAvailable) {
+        System.out.println("|     Type         |\tPlate\t|\tMake\t|\tModel\t|\tYear\t|");
+        System.out.println("---------------------------------------------------------------------------------");
+        for (Vehicle v : vehicles) {
+            if (!onlyAvailable || v.getStatus() == Vehicle.VehicleStatus.AVAILABLE) {
+                System.out.println("|     " + (v instanceof Car ? "Car          " : v instanceof Motorcycle ? "Motorcycle   " : "Truck        ") + "|\t" + v.getLicensePlate() + "\t|\t" + v.getMake() + "\t|\t" + v.getModel() + "\t|\t" + v.getYear() + "\t|\t");
+            }
+        }
+        System.out.println();
     }
 
-    public RentalHistory getRentalHistory() {
-        return rentalHistory;
+    public void displayAllCustomers() {
+        for (Customer c : customers) {
+            System.out.println("  " + c.toString());
+        }
+    }
+
+    public void displayRentalHistory() {
+        for (RentalRecord record : rentalHistory.getRentalHistory()) {
+            System.out.println(record.toString());
+        }
+    }
+
+    public Vehicle findVehicleByPlate(String plate) {
+        for (Vehicle v : vehicles) {
+            if (v.getLicensePlate().equalsIgnoreCase(plate)) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    public Customer findCustomerById(String id) {
+        for (Customer c : customers) {
+            if (c.getCustomerId() == Integer.parseInt(id)) {
+                return c;
+            }
+        }
+        return null;
     }
 }
