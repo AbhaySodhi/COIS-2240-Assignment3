@@ -8,7 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class RentalSystem {
-    private static RentalSystem instance; // Singleton from Task 1.1
+    private static RentalSystem instance;
     private List<Vehicle> vehicles = new ArrayList<>();
     private List<Customer> customers = new ArrayList<>();
     private RentalHistory rentalHistory = new RentalHistory();
@@ -17,6 +17,7 @@ public class RentalSystem {
         loadData();
     }
 
+    
     public static RentalSystem getInstance() {
         if (instance == null) {
             instance = new RentalSystem();
@@ -24,7 +25,7 @@ public class RentalSystem {
         return instance;
     }
 
-    //  File storage methods
+    // File storage methods
     public void saveVehicle(Vehicle vehicle) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("vehicles.txt", true))) {
             writer.write(vehicle.getLicensePlate() + "," + vehicle.getMake() + "," + vehicle.getModel() + "," + vehicle.getYear() + "," + vehicle.getClass().getSimpleName());
@@ -52,17 +53,29 @@ public class RentalSystem {
         }
     }
 
-    //  Updated methods to call save methods
-    public void addVehicle(Vehicle vehicle) {
+    //  Modified to return boolean and check duplicates
+    public boolean addVehicle(Vehicle vehicle) {
+        if (findVehicleByPlate(vehicle.getLicensePlate()) != null) {
+            System.out.println("Vehicle with license plate " + vehicle.getLicensePlate() + " already exists.");
+            return false;
+        }
         vehicles.add(vehicle);
         saveVehicle(vehicle);
+        return true;
     }
 
-    public void addCustomer(Customer customer) {
+    //  Modified to return boolean and check duplicates
+    public boolean addCustomer(Customer customer) {
+        if (findCustomerById(String.valueOf(customer.getCustomerId())) != null) {
+            System.out.println("Customer with ID " + customer.getCustomerId() + " already exists.");
+            return false;
+        }
         customers.add(customer);
         saveCustomer(customer);
+        return true;
     }
 
+    //Updated to call saveRecord
     public void rentVehicle(Vehicle vehicle, Customer customer, LocalDate date, double amount) {
         if (vehicle.getStatus() == Vehicle.VehicleStatus.AVAILABLE) {
             vehicle.setStatus(Vehicle.VehicleStatus.RENTED);
@@ -87,7 +100,7 @@ public class RentalSystem {
         }
     }
 
-    //Load data from files
+    // Load data from files
     private void loadData() {
         // Load vehicles
         try (BufferedReader reader = new BufferedReader(new FileReader("vehicles.txt"))) {
@@ -103,16 +116,16 @@ public class RentalSystem {
                     Vehicle vehicle;
                     switch (type) {
                         case "Car":
-                            vehicle = new Car(make, model, year, 5); // Default seats
+                            vehicle = new Car(make, model, year, 5);
                             break;
                         case "Motorcycle":
-                            vehicle = new Motorcycle(make, model, year, false); // Default sidecar
+                            vehicle = new Motorcycle(make, model, year, false);
                             break;
                         case "Truck":
-                            vehicle = new Truck(make, model, year, 1000); // Default cargo capacity
+                            vehicle = new Truck(make, model, year, 1000);
                             break;
                         default:
-                            continue; // Skip invalid types
+                            continue;
                     }
                     vehicle.setLicensePlate(plate);
                     vehicles.add(vehicle);
@@ -190,7 +203,7 @@ public class RentalSystem {
     }
 
     public Vehicle findVehicleByPlate(String plate) {
-        for (Vehicle v : vehicles) {
+        for (Vehicle v : personally {
             if (v.getLicensePlate().equalsIgnoreCase(plate)) {
                 return v;
             }
