@@ -49,6 +49,33 @@ public class VehicleRentalTest {
         Vehicle invalid4 = new TestVehicle("Test", "Invalid4", 2020);
         assertThrows(IllegalArgumentException.class, () -> invalid4.setLicensePlate("ZZZ99"));
     }
+    
+    @Test
+    void testRentAndReturnVehicle() {
+        TestVehicle vehicle = new TestVehicle("Nissan", "Altima", 2022);
+        vehicle.setLicensePlate("XYZ123");
 
+        Customer customer = new Customer(1, "John Doe");
+
+        // Initially available
+        assertEquals(Vehicle.VehicleStatus.AVAILABLE, vehicle.getStatus());
+
+        boolean rentSuccess = rentalSystem.rentVehicle(vehicle, customer, LocalDate.now(), 500.0);
+        assertTrue(rentSuccess);
+        assertEquals(Vehicle.VehicleStatus.RENTED, vehicle.getStatus());
+
+        // Attempt to rent again should fail
+        boolean rentAgain = rentalSystem.rentVehicle(vehicle, customer, LocalDate.now(), 500.0);
+        assertFalse(rentAgain);
+
+        // Return the vehicle
+        boolean returnSuccess = rentalSystem.returnVehicle(vehicle, customer, LocalDate.now(), 0.0);
+        assertTrue(returnSuccess);
+        assertEquals(Vehicle.VehicleStatus.AVAILABLE, vehicle.getStatus());
+
+        // Attempt to return again should fail
+        boolean returnAgain = rentalSystem.returnVehicle(vehicle, customer, LocalDate.now(), 0.0);
+        assertFalse(returnAgain);
+    }
    
 }
