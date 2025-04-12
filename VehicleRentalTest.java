@@ -78,4 +78,13 @@ public class VehicleRentalTest {
         assertFalse(returnAgain);
     }
    
+    @Test
+    void testSingletonRentalSystem() throws Exception {
+        Constructor<RentalSystem> constructor = RentalSystem.class.getDeclaredConstructor();
+        int modifiers = constructor.getModifiers();
+        assertTrue(Modifier.isPrivate(modifiers), "Constructor is not private");
+
+        RentalSystem instance = RentalSystem.getInstance();
+        assertNotNull(instance);
+    }
 }
